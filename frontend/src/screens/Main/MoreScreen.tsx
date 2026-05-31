@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../../firebaseConfig';
+import { API_BASE_URL } from '../../config';
 
 export default function MoreScreen({ navigation }: any) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -16,7 +17,6 @@ export default function MoreScreen({ navigation }: any) {
     try {
       const user = auth.currentUser;
       if (!user) return;
-      const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
       
       const userRes = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',

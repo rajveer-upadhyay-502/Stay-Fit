@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { API_BASE_URL } from '../../config';
 
 export default function OnboardingScreen({ route, navigation }: any) {
   const userId = route.params?.userId; // Passed down from OTP screen
@@ -54,7 +55,6 @@ export default function OnboardingScreen({ route, navigation }: any) {
         isPrimary: true
       };
 
-      const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
       const response = await fetch(`${API_BASE_URL}/api/profiles`, {
         method: 'POST',
         headers: {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Modal, Alert } from 'react-native';
 import { auth } from '../../../firebaseConfig';
+import { API_BASE_URL } from '../../config';
 
 export default function ReportTimelineScreen() {
   const [reports, setReports] = useState<any[]>([]);
@@ -21,7 +22,6 @@ export default function ReportTimelineScreen() {
     try {
       const user = auth.currentUser;
       if (!user) return;
-      const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
       
       const userRes = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',
@@ -47,7 +47,6 @@ export default function ReportTimelineScreen() {
     try {
       const user = auth.currentUser;
       if (!user) return;
-      const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
       
       const userRes = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../../../firebaseConfig';
+import { API_BASE_URL } from '../../config';
 
 export default function OtpVerificationScreen({ route, navigation }: any) {
   const { verificationId, phoneNumber } = route.params;
@@ -31,7 +32,6 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
       const userCredential = await signInWithCredential(auth, credential);
       const firebaseUser = userCredential.user;
       
-      const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
       const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',
         headers: {

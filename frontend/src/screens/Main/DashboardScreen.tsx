@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../../firebaseConfig';
+import { API_BASE_URL } from '../../config';
 
 export default function DashboardScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
@@ -18,8 +19,6 @@ export default function DashboardScreen({ navigation }: any) {
     try {
       const user = auth.currentUser;
       if (!user) return;
-
-      const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
       
       // 1. Fetch backend User details to get MongoDB ID
       const userResponse = await fetch(`${API_BASE_URL}/api/auth/verify`, {

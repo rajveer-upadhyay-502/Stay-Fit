@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../../../firebaseConfig';
+import { API_BASE_URL } from '../../config';
 
 // Custom Cross-Platform Heart Logo Component
 const LogoIcon = ({ size = 48 }: { size?: number }) => {
@@ -31,7 +32,6 @@ export default function LoginScreen({ navigation }: any) {
       if (user) {
         setLoading(true);
         try {
-          const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
           const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
             method: 'POST',
             headers: {
@@ -126,7 +126,6 @@ export default function LoginScreen({ navigation }: any) {
               onPress: async () => {
                 setLoading(true);
                 try {
-                  const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
                   const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -161,7 +160,6 @@ export default function LoginScreen({ navigation }: any) {
       }
 
       // Verify/Register user on our backend (Web Flow)
-      const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
       const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',
         headers: {
