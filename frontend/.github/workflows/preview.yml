@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+defaults:
+  run:
+    working-directory: ./frontend
+
 jobs:
   update:
     name: Publish EAS Update
@@ -18,7 +22,7 @@ jobs:
         with:
           node-version: 18
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Expo
         uses: expo/expo-github-action@v8
