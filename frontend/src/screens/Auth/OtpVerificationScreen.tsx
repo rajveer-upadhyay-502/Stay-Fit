@@ -3,12 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../../../firebaseConfig';
 import { API_BASE_URL } from '../../config';
+import { useUser } from '../../context/UserContext';
 
 export default function OtpVerificationScreen({ route, navigation }: any) {
   const { verificationId, phoneNumber } = route.params;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(20); // 20-second timer as in mockup
+  const { simulatePhoneLogin } = useUser();
 
   useEffect(() => {
     let interval: any = null;
@@ -27,6 +29,29 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
     }
 
     setLoading(true);
+
+    // Expo Go simulated phone verification bypass
+    if (verificationId === 'phone_expo_go_mock_verification_id') {
+      if (textCode !== '123456') {
+        Alert.alert('Verification Failed', 'Incorrect verification code. Please use 123456.');
+        setLoading(false);
+        return;
+      }
+      try {
+        const data = await simulatePhoneLogin(phoneNumber);
+        if (data.hasProfile) {
+          navigation.replace('Main');
+        } else {
+          navigation.replace('Onboarding', { userId: data.user._id });
+        }
+      } catch (err: any) {
+        Alert.alert('Verification Failed', err.message || 'Simulation login failed.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const credential = PhoneAuthProvider.credential(verificationId, textCode);
       const userCredential = await signInWithCredential(auth, credential);

@@ -11,6 +11,7 @@ interface UserContextType {
   authLoading: boolean;
   refreshUser: () => Promise<void>;
   simulateGoogleLogin: () => Promise<any>;
+  simulatePhoneLogin: (phoneNumber: string) => Promise<any>;
   logout: () => Promise<void>;
 }
 
@@ -80,6 +81,41 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const simulatePhoneLogin = async (phoneNumber: string) => {
+    setAuthLoading(true);
+    try {
+      const mockUser = {
+        uid: `phone_expo_go_mock_uid_${phoneNumber.replace(/[^0-9]/g, '')}`,
+        phoneNumber: phoneNumber,
+      };
+      setFirebaseUser(mockUser);
+      const mockToken = 'mock_token_urajveer7';
+      setToken(mockToken);
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${mockToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMongoUserId(data.user._id);
+        setHasProfile(data.hasProfile);
+        return data;
+      } else {
+        throw new Error('Verification failed');
+      }
+    } catch (err) {
+      console.error('Simulation Phone login failed:', err);
+      throw err;
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const logout = async () => {
     setMongoUserId(null);
     setHasProfile(false);
@@ -128,6 +164,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         authLoading,
         refreshUser,
         simulateGoogleLogin,
+        simulatePhoneLogin,
         logout,
       }}
     >

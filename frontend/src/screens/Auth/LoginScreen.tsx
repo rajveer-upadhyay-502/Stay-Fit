@@ -52,6 +52,30 @@ export default function LoginScreen({ navigation }: any) {
       formattedPhoneNumber = `+91${formattedPhoneNumber}`;
     }
 
+    if (Platform.OS !== 'web') {
+      // Expo Go Mobile: Simulate Phone OTP sending to prevent Firebase SDK crashes due to missing DOM for ReCAPTCHA.
+      Alert.alert(
+        'Phone Auth (Expo Go)',
+        `For testing inside Expo Go, we will simulate sending an OTP to ${formattedPhoneNumber}.\n\nUse mock code 123456 to verify.`,
+        [
+          {
+            text: 'Continue',
+            onPress: () => {
+              navigation.navigate('OtpVerification', { 
+                verificationId: 'phone_expo_go_mock_verification_id', 
+                phoneNumber: formattedPhoneNumber 
+              });
+            }
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       let appVerifier = recaptchaVerifier.current;
