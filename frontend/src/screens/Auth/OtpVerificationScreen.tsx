@@ -32,15 +32,13 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
       const userCredential = await signInWithCredential(auth, credential);
       const firebaseUser = userCredential.user;
       
+      const idToken = await firebaseUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
-        body: JSON.stringify({
-          firebaseUid: firebaseUser.uid,
-          phoneNumber: firebaseUser.phoneNumber || phoneNumber,
-        }),
       });
 
       const data = await response.json();
@@ -267,7 +265,7 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         outlineStyle: 'none',
-      }
+      } as any
     })
   },
   primaryButton: {

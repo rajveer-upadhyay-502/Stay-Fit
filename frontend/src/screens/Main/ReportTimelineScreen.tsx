@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Modal, Alert } from 'react-native';
 import { auth } from '../../../firebaseConfig';
 import { API_BASE_URL } from '../../config';
+import { useUser } from '../../context/UserContext';
 
 export default function ReportTimelineScreen() {
   const [reports, setReports] = useState<any[]>([]);
@@ -13,24 +14,22 @@ export default function ReportTimelineScreen() {
   const [manualTitle, setManualTitle] = useState('');
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
   const [uploading, setUploading] = useState(false);
+  const { mongoUserId, token } = useUser();
 
   useEffect(() => {
-    fetchReports();
-  }, []);
+    if (mongoUserId) {
+      fetchReports();
+    }
+  }, [mongoUserId]);
 
   const fetchReports = async () => {
+    if (!mongoUserId) return;
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      const userRes = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firebaseUid: user.uid }),
+      const res = await fetch(`${API_BASE_URL}/api/reports/${mongoUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-      const userData = await userRes.json();
-      
-      const res = await fetch(`${API_BASE_URL}/api/reports/${userData.user._id}`);
       const reportsList = await res.json();
       if (res.ok) {
         setReports(reportsList);
@@ -43,31 +42,47 @@ export default function ReportTimelineScreen() {
   };
 
   const handleAddReport = async (title: string, type: 'Scan' | 'Upload' | 'Connect' | 'Manual', extraData?: any) => {
+    if (!mongoUserId) return;
+
+    if (!title || title.trim() === '') {
+      Alert.alert('Validation Error', 'Please enter a report title.');
+      return;
+    }
+
+    if (type === 'Manual') {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(manualDate)) {
+        Alert.alert('Invalid Date Format', 'Please enter the date in YYYY-MM-DD format.');
+        return;
+      }
+      const parsedDate = new Date(manualDate);
+      if (isNaN(parsedDate.getTime())) {
+        Alert.alert('Invalid Date', 'Please enter a valid calendar date.');
+        return;
+      }
+    }
+
     setUploading(true);
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      const userRes = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firebaseUid: user.uid }),
-      });
-      const userData = await userRes.json();
-
       const response = await fetch(`${API_BASE_URL}/api/reports`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
-          userId: userData.user._id,
+          userId: mongoUserId,
           title,
           type,
-          date: manualDate,
+          date: type === 'Manual' ? manualDate : new Date().toISOString().split('T')[0],
           parsedData: extraData,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to save report');
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to save report');
+      }
 
       Alert.alert('Report Saved', `Successfully recorded report "${title}"!`);
       

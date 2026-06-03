@@ -3,50 +3,61 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Act
 import { signOut } from 'firebase/auth';
 import { auth } from '../../../firebaseConfig';
 import { API_BASE_URL } from '../../config';
+import { useUser } from '../../context/UserContext';
 
 export default function DashboardScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [recentReport, setRecentReport] = useState<any>(null);
   const [activity, setActivity] = useState<any>(null);
+  const { mongoUserId, token, logout } = useUser();
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (mongoUserId) {
+      fetchDashboardData();
+    }
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (mongoUserId) {
+        fetchDashboardData();
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, mongoUserId]);
 
   const fetchDashboardData = async () => {
+    if (!mongoUserId) return;
     setLoading(true);
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      // 1. Fetch backend User details to get MongoDB ID
-      const userResponse = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firebaseUid: user.uid }),
+      // 1. Fetch User Profile
+      const profileResponse = await fetch(`${API_BASE_URL}/api/profiles/${mongoUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-      const userData = await userResponse.json();
-      if (!userResponse.ok) throw new Error('User fetch failed');
-
-      const mongoUserId = userData.user._id;
-
-      // 2. Fetch User Profile
-      const profileResponse = await fetch(`${API_BASE_URL}/api/profiles/${mongoUserId}`);
       const profiles = await profileResponse.json();
       if (profileResponse.ok && profiles.length > 0) {
         setProfile(profiles[0]);
       }
 
-      // 3. Fetch Recent Report
-      const reportResponse = await fetch(`${API_BASE_URL}/api/reports/${mongoUserId}`);
+      // 2. Fetch Recent Report
+      const reportResponse = await fetch(`${API_BASE_URL}/api/reports/${mongoUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const reports = await reportResponse.json();
       if (reportResponse.ok && reports.length > 0) {
         setRecentReport(reports[0]);
       }
 
-      // 4. Fetch Recent Activity
-      const activityResponse = await fetch(`${API_BASE_URL}/api/activities/${mongoUserId}`);
+      // 3. Fetch Recent Activity
+      const activityResponse = await fetch(`${API_BASE_URL}/api/activities/${mongoUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const activities = await activityResponse.json();
       if (activityResponse.ok && activities.length > 0) {
         setActivity(activities[0]);
@@ -61,6 +72,7 @@ export default function DashboardScreen({ navigation }: any) {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      await logout();
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (e) {
       Alert.alert('Error', 'Logout failed');

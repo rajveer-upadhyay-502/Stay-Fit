@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { useUser } from '../../context/UserContext';
 
 const { width } = Dimensions.get('window');
 
@@ -25,14 +26,29 @@ const LogoIcon = ({ size = 60 }: { size?: number }) => {
 
 export default function WelcomeScreen({ navigation }: any) {
   const [step, setStep] = useState(0); // 0: Splash, 1: Slide 1, 2: Slide 2, 3: Slide 3
+  const { firebaseUser, mongoUserId, hasProfile, authLoading } = useUser();
   
   useEffect(() => {
-    // Show splash screen for 1.5 seconds, then transition to onboarding walkthrough
-    const timer = setTimeout(() => {
-      setStep(1);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (authLoading) return;
+
+    if (step === 0) {
+      if (firebaseUser) {
+        if (hasProfile) {
+          navigation.replace('Main');
+        } else if (mongoUserId) {
+          navigation.replace('Onboarding', { userId: mongoUserId });
+        } else {
+          setStep(1);
+        }
+      } else {
+        // Show splash screen for 1.5 seconds, then transition to onboarding walkthrough
+        const timer = setTimeout(() => {
+          setStep(1);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [authLoading, firebaseUser, mongoUserId, hasProfile, step]);
 
   const handleNext = () => {
     if (step < 3) {

@@ -2,29 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { auth } from '../../../firebaseConfig';
 import { API_BASE_URL } from '../../config';
+import { useUser } from '../../context/UserContext';
 
 export default function MyHealthScreen() {
   const [activeTab, setActiveTab] = useState<'trajectory' | 'forecast'>('trajectory');
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const { mongoUserId, token } = useUser();
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (mongoUserId) {
+      fetchProfile();
+    }
+  }, [mongoUserId]);
 
   const fetchProfile = async () => {
+    if (!mongoUserId) return;
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      const userRes = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firebaseUid: user.uid }),
+      const res = await fetch(`${API_BASE_URL}/api/profiles/${mongoUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-      const userData = await userRes.json();
-      
-      const res = await fetch(`${API_BASE_URL}/api/profiles/${userData.user._id}`);
       const profiles = await res.json();
       if (res.ok && profiles.length > 0) {
         setProfile(profiles[0]);
@@ -314,7 +313,7 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     fontSize: 16,
-    fontWeight: '850',
+    fontWeight: '800',
     color: '#1E293B',
     marginBottom: 16,
   },

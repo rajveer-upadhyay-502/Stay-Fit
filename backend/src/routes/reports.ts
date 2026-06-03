@@ -1,15 +1,26 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Report from '../models/Report';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 
 // Upload/Create a new medical report
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware as any, async (req: AuthenticatedRequest, res) => {
   try {
     const { userId, title, type, fileUrl, parsedData, date } = req.body;
 
-    if (!userId || !title || !type) {
-      return res.status(400).json({ error: 'userId, title, and type are required' });
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid or missing userId' });
+    }
+
+    if (!title || !type) {
+      return res.status(400).json({ error: 'title and type are required' });
+    }
+
+    // Authorization: Ensure authenticated user matches target userId
+    if (!req.mongoUser || req.mongoUser._id.toString() !== userId) {
+      return res.status(403).json({ error: 'Forbidden: Access denied' });
     }
 
     // Default mock data depending on report type if not provided
@@ -33,6 +44,9 @@ router.post('/', async (req, res) => {
     }
 
     const reportDate = date ? new Date(date) : new Date();
+    if (isNaN(reportDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
 
     const newReport = new Report({
       userId,
@@ -52,9 +66,19 @@ router.post('/', async (req, res) => {
 });
 
 // Get all reports for a specific user
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', authMiddleware as any, async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId as string)) {
+      return res.status(400).json({ error: 'Invalid userId format' });
+    }
+
+    // Authorization: Ensure authenticated user matches target userId
+    if (!req.mongoUser || req.mongoUser._id.toString() !== userId) {
+      return res.status(403).json({ error: 'Forbidden: Access denied' });
+    }
+
     const reports = await Report.find({ userId }).sort({ date: -1 });
     res.status(200).json(reports);
   } catch (error) {

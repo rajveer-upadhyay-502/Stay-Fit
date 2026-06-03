@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
 import { auth } from '../../../firebaseConfig';
 import { API_BASE_URL } from '../../config';
+import { useUser } from '../../context/UserContext';
 
 export default function DailyActivityScreen() {
   const [loading, setLoading] = useState(true);
@@ -10,27 +11,23 @@ export default function DailyActivityScreen() {
   const [stepLength, setStepLength] = useState(72);
   const [flights, setFlights] = useState(8);
   const [asymmetry, setAsymmetry] = useState(2.4);
-  const [mongoUserId, setMongoUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { mongoUserId, token } = useUser();
 
   useEffect(() => {
-    fetchActivity();
-  }, []);
+    if (mongoUserId) {
+      fetchActivity();
+    }
+  }, [mongoUserId]);
 
   const fetchActivity = async () => {
+    if (!mongoUserId) return;
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const userRes = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firebaseUid: user.uid }),
+      const res = await fetch(`${API_BASE_URL}/api/activities/${mongoUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-      const userData = await userRes.json();
-      setMongoUserId(userData.user._id);
-
-      const res = await fetch(`${API_BASE_URL}/api/activities/${userData.user._id}`);
       const activities = await res.json();
       
       if (res.ok && activities.length > 0) {
@@ -54,7 +51,10 @@ export default function DailyActivityScreen() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/activities`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           userId: mongoUserId,
           steps: newSteps,

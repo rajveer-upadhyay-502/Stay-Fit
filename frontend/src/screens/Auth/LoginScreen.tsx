@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
-import { RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../../../firebaseConfig';
 import { API_BASE_URL } from '../../config';
+import { useUser } from '../../context/UserContext';
 
 // Custom Cross-Platform Heart Logo Component
 const LogoIcon = ({ size = 48 }: { size?: number }) => {
@@ -25,43 +26,7 @@ export default function LoginScreen({ navigation }: any) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
-
-  // Auto-login returning users
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setLoading(true);
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              firebaseUid: user.uid,
-              phoneNumber: user.phoneNumber || undefined,
-              email: user.email || undefined,
-            }),
-          });
-
-          const data = await response.json();
-          if (response.ok) {
-            if (data.hasProfile) {
-              navigation.replace('Main');
-            } else {
-              navigation.replace('Onboarding', { userId: data.user._id });
-            }
-          }
-        } catch (error) {
-          console.error('Auto-login check failed:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const { simulateGoogleLogin } = useUser();
 
   // Set up recaptcha for web
   useEffect(() => {
@@ -126,24 +91,14 @@ export default function LoginScreen({ navigation }: any) {
               onPress: async () => {
                 setLoading(true);
                 try {
-                  const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      firebaseUid: 'google_expo_go_mock_uid_urajveer7',
-                      email: 'urajveer7@gmail.com',
-                    }),
-                  });
-                  const data = await response.json();
-                  if (!response.ok) throw new Error(data.error || 'Failed to verify on backend');
-
+                  const data = await simulateGoogleLogin();
                   if (data.hasProfile) {
                     navigation.replace('Main');
                   } else {
                     navigation.replace('Onboarding', { userId: data.user._id });
                   }
                 } catch (e: any) {
-                  Alert.alert('Login Error', e.message);
+                  Alert.alert('Login Error', e.message || 'Mock login failed');
                 } finally {
                   setLoading(false);
                 }
@@ -160,16 +115,13 @@ export default function LoginScreen({ navigation }: any) {
       }
 
       // Verify/Register user on our backend (Web Flow)
+      const idToken = await firebaseUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
-        body: JSON.stringify({
-          firebaseUid: firebaseUser.uid,
-          email: firebaseUser.email,
-          phoneNumber: firebaseUser.phoneNumber || undefined,
-        }),
       });
 
       const data = await response.json();
